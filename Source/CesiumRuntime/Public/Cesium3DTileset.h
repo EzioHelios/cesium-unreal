@@ -10,7 +10,6 @@
 #include "CesiumEncodedMetadataComponent.h"
 #include "CesiumFeaturesMetadataComponent.h"
 #include "CesiumGeoreference.h"
-#include "CesiumIonServer.h"
 #include "CesiumPointCloudShading.h"
 #include "CoreMinimal.h"
 #include "CustomDepthParameters.h"
@@ -82,7 +81,8 @@ public:
   virtual ~ACesium3DTileset();
 
 private:
-  UPROPERTY(VisibleAnywhere, Category = "Cesium") USceneComponent* Root;
+  UPROPERTY(VisibleAnywhere, Category = "Cesium")
+  USceneComponent* Root;
 
   UPROPERTY(
       Meta =
@@ -695,23 +695,18 @@ private:
       meta = (EditCondition = "TilesetSource==ETilesetSource::FromCesiumIon"))
   FString IonAccessToken;
 
-  UPROPERTY(
-      meta =
-          (DeprecatedProperty,
-           DeprecationMessage = "Use CesiumIonServer instead."))
-  FString IonAssetEndpointUrl_DEPRECATED;
-
   /**
-   * The Cesium ion Server from which this tileset is loaded.
+   * The URL of the ion asset endpoint. Defaults to Cesium ion but a custom
+   * endpoint can be specified.
    */
   UPROPERTY(
       EditAnywhere,
-      BlueprintGetter = GetCesiumIonServer,
-      BlueprintSetter = SetCesiumIonServer,
+      BlueprintGetter = GetIonAssetEndpointUrl,
+      BlueprintSetter = SetIonAssetEndpointUrl,
       Category = "Cesium",
       AdvancedDisplay,
       meta = (EditCondition = "TilesetSource==ETilesetSource::FromCesiumIon"))
-  UCesiumIonServer* CesiumIonServer;
+  FString IonAssetEndpointUrl;
 
   /**
    * Check if the Cesium ion token used to access this tileset is working
@@ -934,10 +929,10 @@ public:
   void SetIonAccessToken(const FString& InAccessToken);
 
   UFUNCTION(BlueprintGetter, Category = "Cesium")
-  UCesiumIonServer* GetCesiumIonServer() const { return CesiumIonServer; }
+  FString GetIonAssetEndpointUrl() const { return IonAssetEndpointUrl; }
 
   UFUNCTION(BlueprintSetter, Category = "Cesium")
-  void SetCesiumIonServer(UCesiumIonServer* Server);
+  void SetIonAssetEndpointUrl(const FString& InIonAssetEndpointUrl);
 
   UFUNCTION(BlueprintGetter, Category = "Cesium")
   double GetMaximumScreenSpaceError() { return MaximumScreenSpaceError; }

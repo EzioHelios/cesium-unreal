@@ -4,7 +4,6 @@
 
 #include "CesiumEditorReparentHandler.h"
 #include "CesiumEditorSubLevelMutex.h"
-#include "CesiumIonServerManager.h"
 #include "CesiumIonSession.h"
 #include "CoreMinimal.h"
 #include "Modules/ModuleManager.h"
@@ -18,7 +17,6 @@ class UCesiumRasterOverlay;
 class UCesiumIonRasterOverlay;
 struct FCesium3DTilesetLoadFailureDetails;
 struct FCesiumRasterOverlayLoadFailureDetails;
-class UCesiumIonServer;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCesiumEditor, Log, All);
 
@@ -36,9 +34,9 @@ public:
 
   static FCesiumEditorModule* get() { return _pModule; }
 
-  static CesiumIonServerManager& serverManager() {
+  static CesiumIonSession& ion() {
     assert(_pModule);
-    return get()->_serverManager;
+    return *_pModule->_pIonSession;
   }
 
   static ACesium3DTileset* FindFirstTilesetSupportingOverlays();
@@ -111,7 +109,7 @@ private:
   void OnTilesetIonTroubleshooting(ACesium3DTileset* pTileset);
   void OnRasterOverlayIonTroubleshooting(UCesiumRasterOverlay* pOverlay);
 
-  CesiumIonServerManager _serverManager;
+  std::shared_ptr<CesiumIonSession> _pIonSession;
   FDelegateHandle _tilesetLoadFailureSubscription;
   FDelegateHandle _rasterOverlayLoadFailureSubscription;
   FDelegateHandle _tilesetIonTroubleshootingSubscription;

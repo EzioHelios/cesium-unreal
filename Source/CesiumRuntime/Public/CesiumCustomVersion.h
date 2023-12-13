@@ -33,10 +33,6 @@ struct CESIUMRUNTIME_API FCesiumCustomVersion {
     // the GlobeAwareDefaultPawn.
     FlyToComponent = 6,
 
-    // Added the CesiumIonServer property to Cesium3DTileset and
-    // CesiumIonRasterOverlay.
-    CesiumIonServer = 7,
-
     VersionPlusOne,
     LatestVersion = VersionPlusOne - 1
   };

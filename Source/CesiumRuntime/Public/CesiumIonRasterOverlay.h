@@ -6,8 +6,6 @@
 #include "CoreMinimal.h"
 #include "CesiumIonRasterOverlay.generated.h"
 
-class UCesiumIonServer;
-
 /**
  * A raster overlay that uses an IMAGERY asset from Cesium ion.
  */
@@ -39,20 +37,11 @@ public:
    * endpoint can be specified.
    */
   UPROPERTY(
-      meta =
-          (DeprecatedProperty,
-           DeprecationMessage = "Use CesiumIonServer instead."))
-  FString IonAssetEndpointUrl_DEPRECATED;
-
-  /**
-   * The Cesium ion Server from which this raster overlay is loaded.
-   */
-  UPROPERTY(
       EditAnywhere,
       BlueprintReadWrite,
       Category = "Cesium",
       AdvancedDisplay)
-  UCesiumIonServer* CesiumIonServer;
+  FString IonAssetEndpointUrl;
 
   /**
    * Check if the Cesium ion token used to access this raster overlay is working

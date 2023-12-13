@@ -10,9 +10,7 @@
 class ACesium3DTileset;
 class UCesiumRasterOverlay;
 
-using CesiumIonObject = std::variant<
-    TWeakObjectPtr<ACesium3DTileset>,
-    TWeakObjectPtr<UCesiumRasterOverlay>>;
+using CesiumIonObject = std::variant<ACesium3DTileset*, UCesiumRasterOverlay*>;
 
 class CesiumIonTokenTroubleshooting : public SWindow {
   SLATE_BEGIN_ARGS(CesiumIonTokenTroubleshooting) {}

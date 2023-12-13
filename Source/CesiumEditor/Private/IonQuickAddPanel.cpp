@@ -6,9 +6,6 @@
 #include "CesiumEditor.h"
 #include "CesiumIonClient/Connection.h"
 #include "CesiumIonRasterOverlay.h"
-#include "CesiumIonServer.h"
-#include "CesiumRuntimeSettings.h"
-#include "CesiumUtility/Uri.h"
 #include "Editor.h"
 #include "PropertyCustomizationHelpers.h"
 #include "SelectCesiumIonToken.h"
@@ -38,16 +35,6 @@ void IonQuickAddPanel::Construct(const FArguments& InArgs) {
                          .Text(InArgs._Title)]] +
        SVerticalBox::Slot()
            .VAlign(VAlign_Top)
-           .AutoHeight()[SNew(STextBlock)
-                             .Visibility_Lambda([this]() {
-                               return this->_message.IsEmpty()
-                                          ? EVisibility::Collapsed
-                                          : EVisibility::Visible;
-                             })
-                             .Text_Lambda([this]() { return this->_message; })
-                             .AutoWrapText(true)] +
-       SVerticalBox::Slot()
-           .VAlign(VAlign_Top)
            .Padding(FMargin(5.0f, 0.0f, 5.0f, 20.0f))[this->QuickAddList()]];
 }
 
@@ -55,29 +42,12 @@ void IonQuickAddPanel::AddItem(const QuickAddItem& item) {
   _quickAddItems.Add(MakeShared<QuickAddItem>(item));
 }
 
-void IonQuickAddPanel::ClearItems() { this->_quickAddItems.Empty(); }
-
-void IonQuickAddPanel::Refresh() {
-  if (!this->_pQuickAddList)
-    return;
-
-  this->_pQuickAddList->RequestListRefresh();
-}
-
-const FText& IonQuickAddPanel::GetMessage() const { return this->_message; }
-
-void IonQuickAddPanel::SetMessage(const FText& message) {
-  this->_message = message;
-}
-
 TSharedRef<SWidget> IonQuickAddPanel::QuickAddList() {
-  this->_pQuickAddList =
-      SNew(SListView<TSharedRef<QuickAddItem>>)
-          .SelectionMode(ESelectionMode::None)
-          .ListItemsSource(&_quickAddItems)
-          .OnMouseButtonDoubleClick(this, &IonQuickAddPanel::AddItemToLevel)
-          .OnGenerateRow(this, &IonQuickAddPanel::CreateQuickAddItemRow);
-  return this->_pQuickAddList.ToSharedRef();
+  return SNew(SListView<TSharedRef<QuickAddItem>>)
+      .SelectionMode(ESelectionMode::None)
+      .ListItemsSource(&_quickAddItems)
+      .OnMouseButtonDoubleClick(this, &IonQuickAddPanel::AddItemToLevel)
+      .OnGenerateRow(this, &IonQuickAddPanel::CreateQuickAddItemRow);
 }
 
 TSharedRef<ITableRow> IonQuickAddPanel::CreateQuickAddItemRow(
@@ -128,12 +98,6 @@ void showAssetDepotConfirmWindow(
     const FString& itemName,
     int64_t missingAsset) {
 
-  UCesiumIonServer* pServer =
-      FCesiumEditorModule::serverManager().GetCurrentServer();
-  std::string url = CesiumUtility::Uri::resolve(
-      TCHAR_TO_UTF8(*pServer->ServerUrl),
-      "assetdepot/" + std::to_string(missingAsset));
-
   // clang-format off
   TSharedRef<SWindow> AssetDepotConfirmWindow =
     SNew(SWindow)
@@ -155,9 +119,12 @@ void showAssetDepotConfirmWindow(
             .Padding(10.0f, 5.0f)
           [
             SNew(SHyperlink)
-              .OnNavigate_Lambda([url]() {
+              .OnNavigate_Lambda([missingAsset]() {
                 FPlatformProcess::LaunchURL(
-                    UTF8_TO_TCHAR(url.c_str()),
+                    UTF8_TO_TCHAR(
+                        ("https://cesium.com/ion/assetdepot/" +
+                          std::to_string(missingAsset))
+                            .c_str()),
                     NULL,
                     NULL);
               })
@@ -203,7 +170,7 @@ void showAssetDepotConfirmWindow(
 
 void IonQuickAddPanel::AddIonTilesetToLevel(TSharedRef<QuickAddItem> item) {
   const std::optional<CesiumIonClient::Connection>& connection =
-      FCesiumEditorModule::serverManager().GetCurrentSession()->getConnection();
+      FCesiumEditorModule::ion().getConnection();
   if (!connection) {
     UE_LOG(
         LogCesiumEditor,
@@ -217,9 +184,7 @@ void IonQuickAddPanel::AddIonTilesetToLevel(TSharedRef<QuickAddItem> item) {
     assetIDs.push_back(item->overlayID);
   }
 
-  SelectCesiumIonToken::SelectAndAuthorizeToken(
-      FCesiumEditorModule::serverManager().GetCurrentServer(),
-      assetIDs)
+  SelectCesiumIonToken::SelectAndAuthorizeToken(assetIDs)
       .thenInMainThread([connection, tilesetID = item->tilesetID](
                             const std::optional<Token>& /*maybeToken*/) {
         // If token selection was canceled, or if an error occurred while
@@ -258,7 +223,7 @@ void IonQuickAddPanel::AddIonTilesetToLevel(TSharedRef<QuickAddItem> item) {
                 item->tilesetID);
           }
 
-          FCesiumEditorModule::serverManager().GetCurrentSession()->getAssets();
+          FCesiumEditorModule::ion().getAssets();
 
           if (item->overlayID > 0) {
             FCesiumEditorModule::AddBaseOverlay(

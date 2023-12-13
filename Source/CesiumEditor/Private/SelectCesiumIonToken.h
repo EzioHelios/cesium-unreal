@@ -10,12 +10,8 @@
 #include <string>
 #include <variant>
 
-class UCesiumIonServer;
-class CesiumIonSession;
-
 class SelectCesiumIonToken : public SWindow {
   SLATE_BEGIN_ARGS(SelectCesiumIonToken) {}
-  SLATE_ARGUMENT(UCesiumIonServer*, Server)
   SLATE_END_ARGS()
 
 public:
@@ -27,7 +23,7 @@ public:
    * without selecting a token.
    */
   static CesiumAsync::SharedFuture<std::optional<CesiumIonClient::Token>>
-  SelectNewToken(UCesiumIonServer* pServer);
+  SelectNewToken();
 
   /**
    * Opens a panel to allow the user to select a new token if a project default
@@ -40,7 +36,7 @@ public:
    * a token.
    */
   static CesiumAsync::Future<std::optional<CesiumIonClient::Token>>
-  SelectTokenIfNecessary(UCesiumIonServer* pServer);
+  SelectTokenIfNecessary();
 
   /**
    * Authorizes the project default token to access a list of asset IDs. If the
@@ -55,10 +51,10 @@ public:
    * a token.
    */
   static CesiumAsync::Future<std::optional<CesiumIonClient::Token>>
-  SelectAndAuthorizeToken(
-      UCesiumIonServer* pServer,
-      const std::vector<int64_t>& assetIDs);
+  SelectAndAuthorizeToken(const std::vector<int64_t>& assetIDs);
 
+  SelectCesiumIonToken();
+  virtual ~SelectCesiumIonToken();
   void Construct(const FArguments& InArgs);
 
 private:
@@ -77,14 +73,13 @@ private:
   };
 
   void createRadioButton(
-      const std::shared_ptr<CesiumIonSession>& pSession,
       const TSharedRef<SVerticalBox>& pVertical,
       TokenSource& tokenSource,
       TokenSource thisValue,
       const FString& label,
       bool requiresIonConnection,
       const TSharedRef<SWidget>& pWidget);
-  FReply UseOrCreate(std::shared_ptr<CesiumIonSession> pSession);
+  FReply UseOrCreate();
   void RefreshTokens();
   TSharedRef<SWidget>
   OnGenerateTokenComboBoxEntry(TSharedPtr<CesiumIonClient::Token> pToken);
@@ -111,5 +106,4 @@ private:
   FDelegateHandle _tokensUpdatedDelegateHandle;
   TArray<TSharedPtr<CesiumIonClient::Token>> _tokens;
   TSharedPtr<SComboBox<TSharedPtr<CesiumIonClient::Token>>> _pTokensCombo;
-  TWeakObjectPtr<UCesiumIonServer> _pServer;
 };

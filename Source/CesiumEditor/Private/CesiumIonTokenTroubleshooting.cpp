@@ -5,9 +5,7 @@
 #include "CesiumEditor.h"
 #include "CesiumIonClient/Connection.h"
 #include "CesiumIonRasterOverlay.h"
-#include "CesiumIonServerDisplay.h"
 #include "CesiumRuntimeSettings.h"
-#include "CesiumUtility/Uri.h"
 #include "EditorStyleSet.h"
 #include "LevelEditor.h"
 #include "ScopedTransaction.h"
@@ -44,9 +42,8 @@ using namespace CesiumIonClient;
 
   // If this is a tileset, close any already-open panels associated with its
   // overlays. Overlays won't appear until the tileset is working anyway.
-  TWeakObjectPtr<ACesium3DTileset>* ppTileset =
-      std::get_if<TWeakObjectPtr<ACesium3DTileset>>(&ionObject);
-  if (ppTileset && ppTileset->IsValid()) {
+  ACesium3DTileset** ppTileset = std::get_if<ACesium3DTileset*>(&ionObject);
+  if (ppTileset && *ppTileset) {
     TArray<UCesiumRasterOverlay*> rasterOverlays;
     (*ppTileset)->GetComponents<UCesiumRasterOverlay>(rasterOverlays);
 
@@ -67,9 +64,9 @@ using namespace CesiumIonClient;
 
   // If this is a raster overlay and this panel is already open for its attached
   // tileset, don't open the panel for the overlay for the same reason as above.
-  TWeakObjectPtr<UCesiumRasterOverlay>* ppRasterOverlay =
-      std::get_if<TWeakObjectPtr<UCesiumRasterOverlay>>(&ionObject);
-  if (ppRasterOverlay && ppRasterOverlay->IsValid()) {
+  UCesiumRasterOverlay** ppRasterOverlay =
+      std::get_if<UCesiumRasterOverlay*>(&ionObject);
+  if (ppRasterOverlay && *ppRasterOverlay) {
     ACesium3DTileset* pOwner =
         Cast<ACesium3DTileset>((*ppRasterOverlay)->GetOwner());
     if (pOwner) {
@@ -149,13 +146,12 @@ bool isNull(const CesiumIonObject& o) {
 
 FString getLabel(const CesiumIonObject& o) {
   struct Operation {
-    FString operator()(TWeakObjectPtr<ACesium3DTileset> pTileset) {
-      return pTileset.IsValid() ? pTileset->GetActorLabel() : TEXT("Unknown");
+    FString operator()(ACesium3DTileset* pTileset) {
+      return pTileset ? pTileset->GetActorLabel() : TEXT("Unknown");
     }
 
-    FString operator()(TWeakObjectPtr<UCesiumRasterOverlay> pRasterOverlay) {
-      return pRasterOverlay.IsValid() ? pRasterOverlay->GetName()
-                                      : TEXT("Unknown");
+    FString operator()(UCesiumRasterOverlay* pRasterOverlay) {
+      return pRasterOverlay ? pRasterOverlay->GetName() : TEXT("Unknown");
     }
   };
 
@@ -168,9 +164,7 @@ FString getName(const CesiumIonObject& o) {
 
 int64 getIonAssetID(const CesiumIonObject& o) {
   struct Operation {
-    int64 operator()(TWeakObjectPtr<ACesium3DTileset> pTileset) {
-      if (!pTileset.IsValid())
-        return 0;
+    int64 operator()(ACesium3DTileset* pTileset) {
       if (pTileset->GetTilesetSource() != ETilesetSource::FromCesiumIon) {
         return 0;
       } else {
@@ -178,9 +172,7 @@ int64 getIonAssetID(const CesiumIonObject& o) {
       }
     }
 
-    int64 operator()(TWeakObjectPtr<UCesiumRasterOverlay> pRasterOverlay) {
-      if (!pRasterOverlay.IsValid())
-        return 0;
+    int64 operator()(UCesiumRasterOverlay* pRasterOverlay) {
       UCesiumIonRasterOverlay* pIon =
           Cast<UCesiumIonRasterOverlay>(pRasterOverlay);
       if (!pIon) {
@@ -196,9 +188,7 @@ int64 getIonAssetID(const CesiumIonObject& o) {
 
 FString getIonAccessToken(const CesiumIonObject& o) {
   struct Operation {
-    FString operator()(TWeakObjectPtr<ACesium3DTileset> pTileset) {
-      if (!pTileset.IsValid())
-        return FString();
+    FString operator()(ACesium3DTileset* pTileset) {
       if (pTileset->GetTilesetSource() != ETilesetSource::FromCesiumIon) {
         return FString();
       } else {
@@ -206,9 +196,7 @@ FString getIonAccessToken(const CesiumIonObject& o) {
       }
     }
 
-    FString operator()(TWeakObjectPtr<UCesiumRasterOverlay> pRasterOverlay) {
-      if (!pRasterOverlay.IsValid())
-        return FString();
+    FString operator()(UCesiumRasterOverlay* pRasterOverlay) {
       UCesiumIonRasterOverlay* pIon =
           Cast<UCesiumIonRasterOverlay>(pRasterOverlay);
       if (!pIon) {
@@ -226,9 +214,7 @@ void setIonAccessToken(const CesiumIonObject& o, const FString& newToken) {
   struct Operation {
     const FString& newToken;
 
-    void operator()(TWeakObjectPtr<ACesium3DTileset> pTileset) {
-      if (!pTileset.IsValid())
-        return;
+    void operator()(ACesium3DTileset* pTileset) {
       if (pTileset->GetIonAccessToken() != newToken) {
         pTileset->Modify();
         pTileset->SetIonAccessToken(newToken);
@@ -237,9 +223,7 @@ void setIonAccessToken(const CesiumIonObject& o, const FString& newToken) {
       }
     }
 
-    void operator()(TWeakObjectPtr<UCesiumRasterOverlay> pRasterOverlay) {
-      if (!pRasterOverlay.IsValid())
-        return;
+    void operator()(UCesiumRasterOverlay* pRasterOverlay) {
       UCesiumIonRasterOverlay* pIon =
           Cast<UCesiumIonRasterOverlay>(pRasterOverlay);
       if (!pIon) {
@@ -259,11 +243,9 @@ void setIonAccessToken(const CesiumIonObject& o, const FString& newToken) {
 
 FString getObjectType(const CesiumIonObject& o) {
   struct Operation {
-    FString operator()(TWeakObjectPtr<ACesium3DTileset> pTileset) {
-      return TEXT("Tileset");
-    }
+    FString operator()(ACesium3DTileset* pTileset) { return TEXT("Tileset"); }
 
-    FString operator()(TWeakObjectPtr<UCesiumRasterOverlay> pRasterOverlay) {
+    FString operator()(UCesiumRasterOverlay* pRasterOverlay) {
       return TEXT("Raster Overlay");
     }
   };
@@ -272,21 +254,16 @@ FString getObjectType(const CesiumIonObject& o) {
 }
 
 UObject* asUObject(const CesiumIonObject& o) {
-  return std::visit(
-      [](auto p) -> UObject* { return p.IsValid() ? p.Get() : nullptr; },
-      o);
+  return std::visit([](auto p) -> UObject* { return p; }, o);
 }
 
 bool isUsingCesiumIon(const CesiumIonObject& o) {
   struct Operation {
-    bool operator()(TWeakObjectPtr<ACesium3DTileset> pTileset) {
-      return pTileset.IsValid() &&
-             pTileset->GetTilesetSource() == ETilesetSource::FromCesiumIon;
+    bool operator()(ACesium3DTileset* pTileset) {
+      return pTileset->GetTilesetSource() == ETilesetSource::FromCesiumIon;
     }
 
-    bool operator()(TWeakObjectPtr<UCesiumRasterOverlay> pRasterOverlay) {
-      if (!pRasterOverlay.IsValid())
-        return false;
+    bool operator()(UCesiumRasterOverlay* pRasterOverlay) {
       UCesiumIonRasterOverlay* pIon =
           Cast<UCesiumIonRasterOverlay>(pRasterOverlay);
       return pIon != nullptr;
@@ -294,36 +271,6 @@ bool isUsingCesiumIon(const CesiumIonObject& o) {
   };
 
   return std::visit(Operation(), o);
-}
-
-UCesiumIonServer* getCesiumIonServer(const CesiumIonObject& o) {
-  struct Operation {
-    UCesiumIonServer*
-    operator()(TWeakObjectPtr<ACesium3DTileset> pTileset) noexcept {
-      return pTileset.IsValid() ? pTileset->GetCesiumIonServer() : nullptr;
-    }
-
-    UCesiumIonServer*
-    operator()(TWeakObjectPtr<UCesiumRasterOverlay> pRasterOverlay) noexcept {
-      if (!pRasterOverlay.IsValid())
-        return nullptr;
-      const UCesiumIonRasterOverlay* pIon =
-          Cast<UCesiumIonRasterOverlay>(pRasterOverlay);
-      return pIon ? pIon->CesiumIonServer : nullptr;
-    }
-  };
-
-  UCesiumIonServer* pServer = std::visit(Operation{}, o);
-  if (!IsValid(pServer)) {
-    pServer = UCesiumIonServer::GetDefaultServer();
-  }
-
-  return pServer;
-}
-
-CesiumIonSession& getSession(const CesiumIonObject& o) {
-  return *FCesiumEditorModule::serverManager().GetSession(
-      getCesiumIonServer(o));
 }
 
 } // namespace
@@ -374,10 +321,6 @@ void CesiumIonTokenTroubleshooting::Construct(const FArguments& InArgs) {
         [SNew(STextBlock).AutoWrapText(true).Text(FText::FromString(preamble))];
   }
 
-  pMainVerticalBox->AddSlot().AutoHeight().Padding(
-      5.0f)[SNew(CesiumIonServerDisplay)
-                .Server(getCesiumIonServer(pIonObject))];
-
   TSharedRef<SHorizontalBox> pDiagnosticColumns = SNew(SHorizontalBox);
 
   if (!getIonAccessToken(pIonObject).IsEmpty()) {
@@ -395,7 +338,7 @@ void CesiumIonTokenTroubleshooting::Construct(const FArguments& InArgs) {
 
   this->_projectDefaultTokenState.name = TEXT("Project Default Access Token");
   this->_projectDefaultTokenState.token =
-      getCesiumIonServer(pIonObject)->DefaultIonAccessToken;
+      GetDefault<UCesiumRuntimeSettings>()->DefaultIonAccessToken;
 
   pDiagnosticColumns->AddSlot()
       .Padding(5.0f, 20.0f, 5.0f, 5.0f)
@@ -404,13 +347,13 @@ void CesiumIonTokenTroubleshooting::Construct(const FArguments& InArgs) {
       .FillWidth(0.5f)
           [this->createTokenPanel(pIonObject, this->_projectDefaultTokenState)];
 
-  if (getSession(this->_pIonObject).isConnected()) {
+  if (FCesiumEditorModule::ion().isConnected()) {
     // Don't let this panel be destroyed while the async operations below are in
     // progress.
     TSharedRef<CesiumIonTokenTroubleshooting> pPanel =
         StaticCastSharedRef<CesiumIonTokenTroubleshooting>(this->AsShared());
 
-    getSession(this->_pIonObject)
+    FCesiumEditorModule::ion()
         .getConnection()
         ->asset(getIonAssetID(pIonObject))
         .thenInMainThread([pPanel](Response<Asset>&& asset) {
@@ -539,15 +482,14 @@ TSharedRef<SWidget> CesiumIonTokenTroubleshooting::createDiagnosticPanel(
 TSharedRef<SWidget> CesiumIonTokenTroubleshooting::createTokenPanel(
     const CesiumIonObject& pIonObject,
     TokenState& state) {
-  CesiumIonSession& ionSession = getSession(pIonObject);
+  CesiumIonSession& ionSession = FCesiumEditorModule::ion();
 
   int64 assetID = getIonAssetID(pIonObject);
 
   auto pConnection = std::make_shared<Connection>(
       ionSession.getAsyncSystem(),
       ionSession.getAssetAccessor(),
-      TCHAR_TO_UTF8(*state.token),
-      TCHAR_TO_UTF8(*getCesiumIonServer(pIonObject)->ApiUrl));
+      TCHAR_TO_UTF8(*state.token));
 
   // Don't let this panel be destroyed while the async operations below are in
   // progress.
@@ -571,7 +513,7 @@ TSharedRef<SWidget> CesiumIonTokenTroubleshooting::createTokenPanel(
         if (pPanel->IsVisible()) {
           // Query the tokens using the user's connection (_not_ the token
           // connection created above).
-          CesiumIonSession& ionSession = getSession(pPanel->_pIonObject);
+          CesiumIonSession& ionSession = FCesiumEditorModule::ion();
           ionSession.resume();
 
           const std::optional<Connection>& userConnection =
@@ -638,7 +580,7 @@ void CesiumIonTokenTroubleshooting::addRemedyButton(
 }
 
 bool CesiumIonTokenTroubleshooting::canConnectToCesiumIon() const {
-  return !getSession(this->_pIonObject).isConnected();
+  return !FCesiumEditorModule::ion().isConnected();
 }
 
 void CesiumIonTokenTroubleshooting::connectToCesiumIon() {
@@ -652,7 +594,7 @@ void CesiumIonTokenTroubleshooting::connectToCesiumIon() {
   pTabManager->TryInvokeTab(FTabId(TEXT("Cesium")));
 
   // Pop up a browser window to sign in to ion.
-  getSession(this->_pIonObject).connect();
+  FCesiumEditorModule::ion().connect();
 }
 
 bool CesiumIonTokenTroubleshooting::canUseProjectDefaultToken() const {
@@ -694,8 +636,9 @@ bool CesiumIonTokenTroubleshooting::canAuthorizeProjectDefaultToken() const {
 }
 
 void CesiumIonTokenTroubleshooting::authorizeProjectDefaultToken() {
-  UCesiumIonServer* pServer = getCesiumIonServer(this->_pIonObject);
-  this->authorizeToken(pServer->DefaultIonAccessToken, true);
+  this->authorizeToken(
+      GetDefault<UCesiumRuntimeSettings>()->DefaultIonAccessToken,
+      true);
 }
 
 bool CesiumIonTokenTroubleshooting::canSelectNewProjectDefaultToken() const {
@@ -704,7 +647,7 @@ bool CesiumIonTokenTroubleshooting::canSelectNewProjectDefaultToken() const {
   }
 
   const TokenState& state = this->_projectDefaultTokenState;
-  return getSession(this->_pIonObject).isConnected() &&
+  return FCesiumEditorModule::ion().isConnected() &&
          (state.isValid == false || (state.allowsAccessToAsset == false &&
                                      state.associatedWithUserAccount == false));
 }
@@ -714,7 +657,7 @@ void CesiumIonTokenTroubleshooting::selectNewProjectDefaultToken() {
     return;
   }
 
-  CesiumIonSession& session = getSession(this->_pIonObject);
+  CesiumIonSession& session = FCesiumEditorModule::ion();
   const std::optional<Connection>& maybeConnection = session.getConnection();
   if (!session.isConnected() || !maybeConnection) {
     UE_LOG(
@@ -730,8 +673,8 @@ void CesiumIonTokenTroubleshooting::selectNewProjectDefaultToken() {
   TSharedRef<CesiumIonTokenTroubleshooting> pPanel =
       StaticCastSharedRef<CesiumIonTokenTroubleshooting>(this->AsShared());
 
-  SelectCesiumIonToken::SelectNewToken(getCesiumIonServer(this->_pIonObject))
-      .thenInMainThread([pPanel](const std::optional<Token>& newToken) {
+  SelectCesiumIonToken::SelectNewToken().thenInMainThread(
+      [pPanel](const std::optional<Token>& newToken) {
         if (!newToken) {
           return;
         }
@@ -741,16 +684,12 @@ void CesiumIonTokenTroubleshooting::selectNewProjectDefaultToken() {
 }
 
 bool CesiumIonTokenTroubleshooting::canOpenCesiumIon() const {
-  return getSession(this->_pIonObject).isConnected();
+  return FCesiumEditorModule::ion().isConnected();
 }
 
 void CesiumIonTokenTroubleshooting::openCesiumIon() {
-  UCesiumIonServer* pServer = getCesiumIonServer(this->_pIonObject);
   FPlatformProcess::LaunchURL(
-      UTF8_TO_TCHAR(CesiumUtility::Uri::resolve(
-                        TCHAR_TO_UTF8(*pServer->ServerUrl),
-                        "tokens")
-                        .c_str()),
+      TEXT("https://cesium.com/ion/tokens"),
       NULL,
       NULL);
 }
@@ -762,7 +701,7 @@ void CesiumIonTokenTroubleshooting::authorizeToken(
     return;
   }
 
-  CesiumIonSession& session = getSession(this->_pIonObject);
+  CesiumIonSession& session = FCesiumEditorModule::ion();
   const std::optional<Connection>& maybeConnection = session.getConnection();
   if (!session.isConnected() || !maybeConnection) {
     UE_LOG(
